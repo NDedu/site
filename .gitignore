@@ -1,108 +1,83 @@
 # My ignore
 
-# ---> C
-# Prerequisites
-*.d
-
-# Object files
+# ---> Native build output (C, Odin, Zig, Go)
 *.o
-*.ko
 *.obj
+*.ko
 *.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
 *.a
+*.lib
 *.la
 *.lo
-
-# Shared objects (inc. Windows DLLs)
 *.dll
 *.so
 *.so.*
 *.dylib
-
-# Executables
 *.exe
+*.exe~
 *.out
 *.app
 *.i*86
 *.x86_64
 *.hex
+*.ilk
+*.exp
+*.gch
+*.pch
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
+# Prebuilt libraries
+# !third_party/sqlite/sqlite3.lib
+
+# Debug info
 *.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-# debug information files
+*.idb
+*.dSYM/
 *.dwo
+*.su
+
+# Build folder: build with `odin build . -out:build/site`
+build/
+# Bare 'web' would ignore cmd/web
+/web
+
+# ---> Odin
+# LLVM IR from -keep-temp-files / -build-mode:llvm-ir
+*.ll
+# core:prof/spall traces
+*.spall
 
 # ---> Zig
 .zig-cache/
 zig-out/
-*.o
 zig-pkg/
-build/
-build-*/
 docgen_tmp/
 
 # ---> Go
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with `go test -c`
 *.test
-
-# Code coverage profiles and other test artifacts
-*.out
 coverage.*
 *.coverprofile
 profile.cov
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# Go workspace file
 go.work
 go.work.sum
+# vendor/
 
-# env file
-.env
-
-# database
+# ---> SQLite: the database and its side files (-journal, -wal, -shm)
 *.db
-*.db-wal
-*.db-shm
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# ---> Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
 
-
+# ---> Logs and profiling
+*.log
+perf.data*
+callgrind.out.*
+vgcore.*
