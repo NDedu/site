@@ -3,6 +3,7 @@ package main
 import "core:net"
 import "core:fmt"
 import "core:mem"
+import "core:os"
 import http "../../odin-http"
 
 VERSION :: "1.0.0"
@@ -55,7 +56,7 @@ main :: proc() {
                 </head>
                 <body>
                     <h1>
-                        Hello there!
+                        Hello there
                     </h1>
                 </body>
             </html>
@@ -64,10 +65,21 @@ main :: proc() {
     }));
 
     endpoints := net.Endpoint {
-        address = net.IP4_Any,
+        address = net.IP4_Loopback,
         port    = PORT,
     };
 
-    fmt.printf("Server started on port: %d \n", PORT);
-    http.listen_and_serve(&server, http.router_handler(&router), endpoints);
+    listen_err := http.listen(&server, endpoints);
+    if listen_err != nil {
+        fmt.eprintfln("Could not listen on port %d: %v", PORT, listen_err);
+        os.exit(1);
+    }
+
+    fmt.printfln("Server started on port: %d", PORT);
+
+    serve_err := http.serve(&server, http.router_handler(&router));
+    if serve_err != nil {
+        fmt.eprintfln("Server stopped with an error: %v", serve_err);
+        os.exit(1);
+    }
 }
