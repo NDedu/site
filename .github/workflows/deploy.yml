@@ -1,0 +1,50 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ODIN_VERSION: dev-2026-10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Install Odin
+        run: |
+          mkdir "$RUNNER_TEMP/odin"
+          curl -fsSL -o "$RUNNER_TEMP/odin.tar.gz" "https://github.com/odin-lang/Odin/releases/download/$ODIN_VERSION/odin-linux-amd64-$ODIN_VERSION.tar.gz"
+          tar -xzf "$RUNNER_TEMP/odin.tar.gz" -C "$RUNNER_TEMP/odin" --strip-components=1
+          echo "$RUNNER_TEMP/odin" >> "$GITHUB_PATH"
+
+      - name: Build
+        run: |
+          mkdir -p build
+          odin build cmd/web -out:build/site -o:speed
+
+      - name: Deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+          ssh -i "$RUNNER_TEMP/deploy_key" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 \
+            -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" -o StrictHostKeyChecking=yes \
+            "root@$DEPLOY_HOST" < build/site
