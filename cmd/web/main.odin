@@ -4,11 +4,28 @@ import "core:net"
 import "core:fmt"
 import "core:mem"
 import "core:os"
+import "core:log"
+import "core:strconv"
 import http "../../odin-http"
+import dotenv "../../internal/dotenv"
 
 VERSION :: "1.0.0"
 CSS_VERSION :: "1"
-PORT :: 8080
+
+Config :: struct {
+	host:        string,
+	port:        int,
+	env:         string,
+	csrf_secret: string,
+	secret_key:  string,
+	db:          struct {
+		dsn: string,
+	},
+	tls:         struct {
+		cert: string,
+		key:  string,
+	},
+}
 
 main :: proc() {
 
@@ -27,6 +44,23 @@ main :: proc() {
             mem.tracking_allocator_destroy(&track);
         }
     }
+
+    dotenv_line, dotenv_err := dotenv.load(".env", context.temp_allocator);
+    free_all(context.temp_allocator);
+    if dotenv_err != .None && dotenv_err != .Not_Found {
+        log.fatalf("loading .env: %v (line %d)", dotenv_err, dotenv_line);
+        os.exit(1);
+    }
+
+    cfg: Config;
+	cfg.host = os.get_env("APP_HOST", context.allocator);
+    port_str := os.get_env("APP_PORT", context.allocator);
+	port, port_ok := strconv.parse_int(port_str, 10);
+	if !port_ok || port == 0 {
+		log.fatalf("invalid APP_PORT %q", port_str);
+		os.exit(1);
+	}
+	cfg.port = port;
 
     server: http.Server;
     http.server_shutdown_on_interrupt(&server);
@@ -66,16 +100,16 @@ main :: proc() {
 
     endpoints := net.Endpoint {
         address = net.IP4_Loopback,
-        port    = PORT,
+        port    = cfg.port,
     };
 
     listen_err := http.listen(&server, endpoints);
     if listen_err != nil {
-        fmt.eprintfln("Could not listen on port %d: %v", PORT, listen_err);
+        fmt.eprintfln("Could not listen on port %d: %v", cfg.port, listen_err);
         os.exit(1);
     }
 
-    fmt.printfln("Server started on port: %d", PORT);
+    fmt.printfln("Server started on port: %d", cfg.port);
 
     serve_err := http.serve(&server, http.router_handler(&router));
     if serve_err != nil {
