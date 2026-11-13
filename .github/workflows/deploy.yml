@@ -32,7 +32,7 @@ jobs:
       - name: Install Odin
         run: |
           mkdir "$RUNNER_TEMP/odin"
-          curl -fsSL -o "$RUNNER_TEMP/odin.tar.gz" \ "https://github.com/odin-lang/Odin/releases/download/$ODIN_VERSION/odin-linux-amd64-$ODIN_VERSION.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/odin.tar.gz" "https://github.com/odin-lang/Odin/releases/download/$ODIN_VERSION/odin-linux-amd64-$ODIN_VERSION.tar.gz"
           echo "$ODIN_SHA256  $RUNNER_TEMP/odin.tar.gz" | sha256sum --check --strict -
           tar -xzf "$RUNNER_TEMP/odin.tar.gz" -C "$RUNNER_TEMP/odin" --strip-components=1
           echo "$RUNNER_TEMP/odin" >> "$GITHUB_PATH"
