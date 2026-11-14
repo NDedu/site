@@ -40,7 +40,7 @@ jobs:
       - name: Build
         run: |
           mkdir -p build
-          odin build cmd/web -out:build/site -o:speed
+          odin build cmd/web -out:build/site -o:speed -define:GIT_SHA="'$GITHUB_SHA'"
 
       - name: Deploy
         env:

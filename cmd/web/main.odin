@@ -7,10 +7,13 @@ import "core:os"
 import "core:log"
 import "core:strconv"
 import http "../../odin-http"
-import dotenv "../../internal/dotenv"
+import "../../internal/dotenv"
+import "../../internal/accesslog"
 
 VERSION :: "1.0.0"
 CSS_VERSION :: "1"
+
+GIT_SHA :: #config(GIT_SHA, "dev")
 
 Config :: struct {
 	host:        string,
@@ -45,6 +48,9 @@ main :: proc() {
         }
     }
 
+    context.logger = log.create_console_logger(lowest = .Debug when ODIN_DEBUG else .Info, opt = {.Level, .Terminal_Color, .Short_File_Path, .Line}, allocator = context.allocator);
+	defer log.destroy_console_logger(context.logger, context.allocator);
+
     dotenv_line, dotenv_err := dotenv.load(".env", context.temp_allocator);
     free_all(context.temp_allocator);
     if dotenv_err != .None && dotenv_err != .Not_Found {
@@ -52,15 +58,22 @@ main :: proc() {
         os.exit(1);
     }
 
-    cfg: Config;
-	cfg.host = os.get_env("APP_HOST", context.allocator);
-    port_str := os.get_env("APP_PORT", context.allocator);
-	port, port_ok := strconv.parse_int(port_str, 10);
-	if !port_ok || port == 0 {
-		log.fatalf("invalid APP_PORT %q", port_str);
+    cfg := Config{port = 8080};
+
+	env_scratch: [64]u8;
+	port_str, port_err := os.lookup_env(env_scratch[:], "APP_PORT");
+	if port_err == .Buffer_Full {
+		log.fatal("APP_PORT is longer than 64 bytes");
 		os.exit(1);
 	}
-	cfg.port = port;
+	if port_str != "" {
+		port_num, port_ok := strconv.parse_uint(port_str, 10);
+		if !port_ok || len(port_str) > 5 || port_num < 1 || port_num > 65535 {
+			log.fatalf("invalid APP_PORT %q", port_str);
+			os.exit(1);
+		}
+		cfg.port = int(port_num);
+	}
 
     server: http.Server;
     http.server_shutdown_on_interrupt(&server);
@@ -98,6 +111,11 @@ main :: proc() {
         )
     }));
 
+    http.route_get(&router, "/version", http.handler(proc(req: ^http.Request, res: ^http.Response) {
+        http.headers_set_unsafe(&res.headers, "cache-control", "no-store");
+        http.respond_plain(res, GIT_SHA);
+    }));
+
     endpoints := net.Endpoint {
         address = net.IP4_Loopback,
         port    = cfg.port,
@@ -105,15 +123,17 @@ main :: proc() {
 
     listen_err := http.listen(&server, endpoints);
     if listen_err != nil {
-        fmt.eprintfln("Could not listen on port %d: %v", cfg.port, listen_err);
+        log.errorf("could not listen on port %d: %v", cfg.port, listen_err);
         os.exit(1);
     }
 
-    fmt.printfln("Server started on port: %d", cfg.port);
+    log.infof("site %s (odin version %s) listening on 127.0.0.1:%d", GIT_SHA, ODIN_VERSION, cfg.port);
 
-    serve_err := http.serve(&server, http.router_handler(&router));
+    router_handler := http.router_handler(&router);
+    logged_handler := accesslog.handler(&router_handler);
+    serve_err := http.serve(&server, logged_handler);
     if serve_err != nil {
-        fmt.eprintfln("Server stopped with an error: %v", serve_err);
+        log.errorf("server stopped with an error: %v", serve_err);
         os.exit(1);
     }
 }

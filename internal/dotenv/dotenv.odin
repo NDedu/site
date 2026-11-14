@@ -1,3 +1,4 @@
+// internal/dotenv
 // Loads a .env file into the environment
 package dotenv
 
