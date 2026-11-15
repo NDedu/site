@@ -82,39 +82,7 @@ main :: proc() {
     http.router_init(&router);
     defer http.router_destroy(&router);
 
-    http.route_get(&router, "/", http.handler(proc(req: ^http.Request, res: ^http.Response) {
-        http.respond_html(res, `
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Hello</title>
-                    <style>
-                        body {
-                            background-color: black;
-                            color: white;
-                            margin: 0;
-                            min-height: 100vh;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h1>
-                        Hello there
-                    </h1>
-                </body>
-            </html>
-        `
-        )
-    }));
-
-    http.route_get(&router, "/version", http.handler(proc(req: ^http.Request, res: ^http.Response) {
-        http.headers_set_unsafe(&res.headers, "cache-control", "no-store");
-        http.respond_plain(res, GIT_SHA);
-    }));
+    routes(&router);
 
     endpoints := net.Endpoint {
         address = net.IP4_Loopback,

@@ -1,0 +1,282 @@
+@font-face {
+    font-family: "JetBrainsMonoNL NF";
+    src: url("/static/fonts/jbmono-nl-nerd-regular.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "JetBrainsMonoNL NF";
+    src: url("/static/fonts/jbmono-nl-nerd-bold.woff2") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "JetBrainsMonoNL NF";
+    src: url("/static/fonts/jbmono-nl-nerd-italic.woff2") format("woff2");
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+/* Colors. Dark is the default; the script in template.html sets data-theme on <html>. */
+:root {
+    color-scheme: dark;
+    --background: #1F1F1F;  /* Normal */
+    --foreground: #BBBBBB;
+    --muted: #8B8B8B;       /* secondary text, 4.84:1 */
+    --faint: #6A6A6A;       /* Comment: decoration only, 3.05:1 is too low for text */
+    --rule: #595959;        /* NonText */
+    --border: #7C7C7C;      /* FloatBorder */
+    --bar: #373737;         /* StatusLine, TabLine */
+    --bar-fill: #2A2A2A;    /* StatusLineNC, TabLineFill */
+    --on-fill: #A6A6A6;     /* text on --bar-fill */
+    --surface: #282828;     /* CursorLine */
+    --selection: #474747;   /* Visual */
+    --code: #989898;        /* Type */
+    --rose: #DE6E7C;
+    --leaf: #819B69;
+    --wood: #B77E64;
+    --water: #6099C0;
+
+    --font: "JetBrainsMonoNL NF", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --column: 80ch;
+    --gutter: clamp(1rem, 4vw, 1.5rem);
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+    --background: #EEEEEE;
+    --foreground: #353535;
+    --muted: #636363;
+    --faint: #8B8B8B;
+    --rule: #AEAEAE;
+    --border: #6F6F6F;
+    --bar: #CFCFCF;
+    --bar-fill: #DDDDDD;
+    --on-fill: #505050;
+    --surface: #E5E5E5;
+    --selection: #D7D7D7;
+    --code: #735057;
+    --rose: #A8334C;
+    --leaf: #4F6C31;
+    --wood: #944927;
+    --water: #286486;
+}
+
+/* Base */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font);
+    font-size: 0.9375rem; /* 15px at the default 16px, and it follows the reader's font-size setting */
+    line-height: 1.6;
+    overflow-wrap: break-word;
+}
+
+h1, h2, h3, p, ul, pre {
+    margin: 0;
+}
+
+h1, h2, h3 {
+    font-size: inherit; /* one text size, like a terminal; weight and marks do the work */
+}
+
+pre, code, kbd, samp {
+    font: inherit;
+}
+
+::selection {
+    background: var(--selection);
+}
+
+a {
+    color: inherit;
+    text-decoration-color: var(--faint);
+    text-underline-offset: 3px;
+}
+
+a:hover {
+    text-decoration-color: currentColor;
+}
+
+:focus-visible {
+    outline: 2px solid var(--water);
+    outline-offset: 2px;
+}
+
+/* Layout: one centered column, 80 characters wide. The bars span the full width. */
+
+.column {
+    width: 100%;
+    max-width: calc(var(--column) + 2 * var(--gutter));
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+}
+
+/* Tab bar, like vim's tabline */
+
+.tabline {
+    background: var(--bar-fill);
+}
+
+.tabline .column {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -1ch; /* tab text lines up with the text below */
+    padding: 0;
+    list-style: none;
+}
+
+.tabs a {
+    display: block;
+    padding: 0 1ch;
+    background: var(--bar);
+    text-decoration: none;
+}
+
+.site-name {
+    margin-left: auto;
+    padding: 0 1ch;
+    color: var(--on-fill);
+}
+
+.theme-toggle {
+    margin: 0 -1ch 0 0;
+    padding: 0 1.5ch 0 1ch; /* Nerd Font icons are drawn wider than one cell */
+    border: 0;
+    border-radius: 0;
+    background: var(--bar);
+    color: var(--foreground);
+    font: inherit;
+    cursor: pointer;
+}
+
+.theme-toggle::before {
+    content: "\f185"; /* sun: switch to light */
+}
+
+:root[data-theme="light"] .theme-toggle::before {
+    content: "\f186"; /* moon: switch to dark */
+}
+
+:root:not([data-theme]) .theme-toggle {
+    display: none;
+}
+
+.tabs a:hover,
+.theme-toggle:hover {
+    background: var(--selection);
+}
+
+@media (pointer: coarse) {
+    /* a slightly taller bar for fingers */
+    .tabs a,
+    .site-name,
+    .theme-toggle {
+        padding-block: 0.25rem;
+    }
+}
+
+/* Page */
+
+.page {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-block: clamp(1.25rem, 5vw, 2rem);
+}
+
+.mark {
+    color: var(--faint); /* the "# " before a heading */
+}
+
+/* Home: intro */
+
+.intro {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.links {
+    color: var(--muted);
+}
+
+.links a {
+    color: var(--foreground);
+}
+
+/* Home: terminal */
+
+.terminal {
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+}
+
+.terminal pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.prompt {
+    color: var(--muted);
+}
+
+.prompt .user {
+    color: var(--leaf);
+    font-weight: 700;
+}
+
+.prompt .path,
+.terminal .dir {
+    color: var(--water);
+    font-weight: 700;
+}
+
+/* Status line */
+
+.statusline {
+    background: var(--bar);
+}
+
+.statusline .column {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2ch;
+}
+
+.statusline .here {
+    font-weight: 700;
+}
+
+.statusline .meta {
+    margin-left: auto;
+}

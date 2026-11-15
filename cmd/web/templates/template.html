@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{{title}}</title>
+        <meta name="description" content="{{description}}">
+        <link rel="icon" href="data:,">
+        <link rel="preload" href="/static/fonts/jbmono-nl-nerd-regular.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="/static/fonts/jbmono-nl-nerd-bold.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="stylesheet" href="/static/css/style.css?v={{css_version}}">
+        <script>
+            (() => {
+                const root = document.documentElement;
+                let theme = null;
+                try { theme = localStorage.getItem("theme"); } catch (error) { /* storage is blocked */ }
+                if (theme !== "light" && theme !== "dark") {
+                    theme = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+                }
+                root.dataset.theme = theme;
+                document.addEventListener("click", (event) => {
+                    if (!event.target.closest("#theme-toggle")) return;
+                    theme = theme === "light" ? "dark" : "light";
+                    root.dataset.theme = theme;
+                    try { localStorage.setItem("theme", theme); } catch (error) { /* storage is blocked */ }
+                });
+            })();
+        </script>
+    </head>
+    <body>
+        <header class="tabline">
+            <nav class="column" aria-label="Main">
+                <ul class="tabs">
+                    <li><a href="/">home</a></li>
+                </ul>
+                <span class="site-name">narcisdedu.com</span>
+                <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle color theme" title="Toggle color theme"></button>
+            </nav>
+        </header>
+        <main class="page column">
+            {{content}}
+        </main>
+        <footer class="statusline">
+            <div class="column">
+                <span class="here">narcis@dedu:{{path}}$</span>
+                <span class="meta"><a href="https://github.com/NDedu/site">source</a> · © Narcis Dedu</span>
+            </div>
+        </footer>
+        {{scripts}}
+    </body>
+</html>
