@@ -1,5 +1,6 @@
 package main
 
+import "core:fmt"
 import "core:strings"
 import "core:testing"
 
@@ -9,7 +10,8 @@ test_render_page_fills_the_placeholders :: proc(t: ^testing.T) {
 	page := Page{title = "T", description = "D", content = "<p>C</p>", scripts = `<script src="/s.js"></script>`};
 
 	got := render_page(layout, page, "/", context.temp_allocator);
-	testing.expect_value(t, got, `<title>T</title><meta content="D"><link href="/s.css?v=` + CSS_VERSION + `"><main><p>C</p></main>~<script src="/s.js"></script>`);
+	want := fmt.tprintf(`<title>T</title><meta content="D"><link href="/s.css?v=%x"><main><p>C</p></main>~<script src="/s.js"></script>`, CSS_VERSION);
+	testing.expect_value(t, got, want);
 }
 
 @(test)

@@ -40,7 +40,7 @@ render_page :: proc(layout: string, page: Page, url_path: string, allocator := c
 		switch name {
 		case "title":       write_text(&out, page.title);
 		case "description": write_text(&out, page.description);
-		case "css_version": strings.write_string(&out, CSS_VERSION);
+		case "css_version": strings.write_u64(&out, CSS_VERSION, 16);
 		case "content":     strings.write_string(&out, page.content);
 		case "scripts":     strings.write_string(&out, page.scripts);
 		case "path":

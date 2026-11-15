@@ -10,7 +10,8 @@ import http "../../odin-http"
 import "../../internal/dotenv"
 
 VERSION :: "1.0.0"
-CSS_VERSION :: "1"
+// A hash of style.css: its URL changes whenever the file does, so no cache serves an old copy
+CSS_VERSION :: #load_hash("../../static/css/style.css", "crc32")
 
 GIT_SHA :: #config(GIT_SHA, "dev")
 
