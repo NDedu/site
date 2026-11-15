@@ -16,7 +16,7 @@ endif
 FLAGS_release := -o:speed
 FLAGS_debug   := -debug
 
-.PHONY: build run clean live logs release debug
+.PHONY: build run test clean live logs release debug
 
 # The single quotes keep GIT_SHA a string: Odin reads an all-digit -define value as a number
 build:
@@ -26,6 +26,13 @@ build:
 # Build as above, run with .env
 run: build
 	./build/site
+
+# The tests of every package. A test that leaks memory fails too
+test:
+	@mkdir -p build
+	$(ODIN) test cmd/web -out:build/test-web -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true
+	$(ODIN) test internal/dotenv -out:build/test-dotenv -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true
+	$(ODIN) test internal/accesslog -out:build/test-accesslog -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true
 
 # Make run release or debug
 release debug:

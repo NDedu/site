@@ -8,7 +8,6 @@ import "core:log"
 import "core:strconv"
 import http "../../odin-http"
 import "../../internal/dotenv"
-import "../../internal/accesslog"
 
 VERSION :: "1.0.0"
 CSS_VERSION :: "1"
@@ -97,9 +96,8 @@ main :: proc() {
 
     log.infof("site %s (odin version %s) listening on 127.0.0.1:%d", GIT_SHA, ODIN_VERSION, cfg.port);
 
-    router_handler := http.router_handler(&router);
-    logged_handler := accesslog.handler(&router_handler);
-    serve_err := http.serve(&server, logged_handler);
+    middleware: Middleware;
+    serve_err := http.serve(&server, middleware_init(&middleware, &router));
     if serve_err != nil {
         log.errorf("server stopped with an error: %v", serve_err);
         os.exit(1);

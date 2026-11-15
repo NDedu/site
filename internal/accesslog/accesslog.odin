@@ -18,7 +18,8 @@ handler :: proc(next_handler: ^http.Handler) -> http.Handler {
 			visitor_ip = "-";
 		}
 
-		method_name := http.method_string(req.line.(http.Requestline).method);
+		// odin-http hands a HEAD request to the handlers as a GET
+		method_name := "HEAD" if req.is_head else http.method_string(req.line.(http.Requestline).method);
 		duration := time.tick_since(start_tick);
 
 		// Not answered yet, status is not known

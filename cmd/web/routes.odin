@@ -2,10 +2,13 @@ package main
 
 import http "../../odin-http"
 
+// TODO: HEAD responses carry the body on every route that sends one: odin-http's respond_with_none doesn't leave it out
+// Until odin-http is fixed: for req.is_head, set content-length to the body's length and respond without a body
 routes :: proc(router: ^http.Router) {
 	http.route_get(router, "/", http.handler(home));
 	http.route_get(router, "/version", http.handler(version));
 	http.route_get(router, "/static/.*", http.handler(static));
+	http.route_all(router, ".*", http.handler(not_found));
 }
 
 home :: proc(req: ^http.Request, res: ^http.Response) {
@@ -46,5 +49,10 @@ static :: proc(req: ^http.Request, res: ^http.Response) {
 		http.respond(res);
 		return;
 	}
+	http.respond(res, http.Status.Not_Found);
+}
+
+// Instead of the router's own 404, which logs a line on top of the access log
+not_found :: proc(req: ^http.Request, res: ^http.Response) {
 	http.respond(res, http.Status.Not_Found);
 }

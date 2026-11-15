@@ -16,9 +16,14 @@ Page :: struct {
 
 render :: proc(req: ^http.Request, res: ^http.Response, page: Page) {
 	// The request's temp allocator, freed once the response is sent
-	out := strings.builder_make(0, len(LAYOUT) + len(page.content) + len(page.scripts) + 256, context.temp_allocator);
+	http.respond_html(res, render_page(LAYOUT, page, req.url.path, context.temp_allocator));
+}
 
-	rest := LAYOUT;
+// The layout with its {{placeholders}} filled in, for the page at url_path
+render_page :: proc(layout: string, page: Page, url_path: string, allocator := context.allocator) -> string {
+	out := strings.builder_make(0, len(layout) + len(page.content) + len(page.scripts) + 256, allocator);
+
+	rest := layout;
 	for {
 		open_idx := strings.index(rest, "{{");
 		if open_idx < 0 {
@@ -41,15 +46,14 @@ render :: proc(req: ^http.Request, res: ^http.Response, page: Page) {
 		case "path":
 			// The URL as a shell path
 			strings.write_byte(&out, '~');
-			write_text(&out, strings.trim_right(req.url.path, "/"));
+			write_text(&out, strings.trim_right(url_path, "/"));
 		case:
 			strings.write_string(&out, rest[open_idx:close_idx + 2]); // unknown: left in, typo shows on the page
 		}
 		rest = rest[close_idx + 2:];
 	}
 	strings.write_string(&out, rest);
-
-	http.respond_html(res, strings.to_string(out));
+	return strings.to_string(out);
 }
 
 // Escapes & < > " '
