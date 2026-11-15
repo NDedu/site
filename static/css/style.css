@@ -43,8 +43,7 @@
     --water: #6099C0;
 
     --font: "JetBrainsMonoNL NF", ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-    --column: 80ch;
-    --gutter: clamp(1rem, 4vw, 1.5rem);
+    --gutter: 1rem;
 }
 
 :root[data-theme="light"] {
@@ -125,12 +124,10 @@ a:hover {
     outline-offset: 2px;
 }
 
-/* Layout: one centered column, 80 characters wide. The bars span the full width. */
+/* Layout: the full width, like a terminal, with a small gutter at the sides */
 
 .column {
     width: 100%;
-    max-width: calc(var(--column) + 2 * var(--gutter));
-    margin-inline: auto;
     padding-inline: var(--gutter);
 }
 
@@ -161,10 +158,11 @@ a:hover {
     text-decoration: none;
 }
 
-.site-name {
+.login {
     margin-left: auto;
     padding: 0 1ch;
-    color: var(--on-fill);
+    background: var(--bar);
+    text-decoration: none;
 }
 
 .theme-toggle {
@@ -191,6 +189,7 @@ a:hover {
 }
 
 .tabs a:hover,
+.login:hover,
 .theme-toggle:hover {
     background: var(--selection);
 }
@@ -198,7 +197,7 @@ a:hover {
 @media (pointer: coarse) {
     /* a slightly taller bar for fingers */
     .tabs a,
-    .site-name,
+    .login,
     .theme-toggle {
         padding-block: 0.25rem;
     }
