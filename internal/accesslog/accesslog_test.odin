@@ -5,22 +5,21 @@ import "core:strings"
 import "core:testing"
 import http "../../odin-http"
 
-// What the handler it wraps does
+// What the wrapped handler does
 Inner :: struct {
 	calls:  int,
 	status: http.Status,
 	sent:   bool,
 }
 
-// What got logged, instead of printing it
+// The logged line, instead of printing it
 Captured :: struct {
 	count: int,
 	level: log.Level,
-	text:  string, // in buf: log.logf frees its temp allocations once the logger returns
+	text:  string, // copied to buf, logf frees the original after the logger returns
 	buf:   [256]byte,
 }
 
-// One request through the access log, logging into captured
 run :: proc(captured: ^Captured, inner: ^Inner, method: http.Method, target: string, visitor_ip := "", is_head := false) {
 	context.logger = log.Logger{
 		procedure = proc(data: rawptr, level: log.Level, text: string, options: log.Options, location := #caller_location) {
@@ -50,14 +49,14 @@ run :: proc(captured: ^Captured, inner: ^Inner, method: http.Method, target: str
 			inner := (^Inner)(self.user_data);
 			inner.calls += 1;
 			res.status = inner.status;
-			res.sent = inner.sent; // what http.respond does, without a connection to send on
+			res.sent = inner.sent; // what http.respond would set
 		},
 	};
 	logged := handler(&next);
 	logged.handle(&logged, &req, &res);
 }
 
-// method, path, status, time in the handler, visitor IP
+// Fields: method, path, status, duration, visitor IP
 expect_fields :: proc(t: ^testing.T, captured: ^Captured, method, path, status, visitor_ip: string, loc := #caller_location) {
 	fields := strings.fields(captured.text, context.temp_allocator);
 	if !testing.expectf(t, len(fields) == 5, "logged %q", captured.text, loc = loc) {
@@ -77,7 +76,7 @@ test_logs_one_line_per_request :: proc(t: ^testing.T) {
 	testing.expect_value(t, inner.calls, 1);
 	testing.expect_value(t, captured.count, 1);
 	testing.expect_value(t, captured.level, log.Level.Info);
-	expect_fields(t, &captured, "GET", "/about", "200", "203.0.113.7"); // the path, without the query string
+	expect_fields(t, &captured, "GET", "/about", "200", "203.0.113.7"); // no query string
 }
 
 @(test)
@@ -92,7 +91,7 @@ test_logs_a_dash_without_a_visitor_ip :: proc(t: ^testing.T) {
 test_logs_head_requests_as_head :: proc(t: ^testing.T) {
 	inner := Inner{status = .OK, sent = true};
 	captured: Captured;
-	run(&captured, &inner, .Get, "/", is_head = true); // how odin-http hands over a HEAD request
+	run(&captured, &inner, .Get, "/", is_head = true); // odin-http passes HEAD as GET
 	expect_fields(t, &captured, "HEAD", "/", "200", "-");
 }
 

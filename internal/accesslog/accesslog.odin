@@ -1,5 +1,3 @@
-// internal/accesslog
-// Logs one line per HTTP request: method, path, status, time in the handler, visitor IP
 package accesslog
 
 import "core:log"
@@ -18,11 +16,11 @@ handler :: proc(next_handler: ^http.Handler) -> http.Handler {
 			visitor_ip = "-";
 		}
 
-		// odin-http hands a HEAD request to the handlers as a GET
+		// odin-http passes HEAD requests to handlers as GET
 		method_name := "HEAD" if req.is_head else http.method_string(req.line.(http.Requestline).method);
 		duration := time.tick_since(start_tick);
 
-		// Not answered yet, status is not known
+		// The handler didn't respond, so there's no status yet
 		if !res.sent {
 			log.infof("%s %s pending %v %s", method_name, req.url.path, duration, visitor_ip);
 			return;

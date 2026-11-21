@@ -8,24 +8,19 @@
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231F1F1F'/><circle cx='12.5' cy='12.5' r='7.6' fill='%23EEEEEE'/><circle cx='19.5' cy='19.5' r='7.6' fill='%230E0E0E' stroke='%238B8B8B' stroke-width='1.2'/></svg>">
         <link rel="preload" href="/static/fonts/jbmono-nl-nerd-regular.woff2" as="font" type="font/woff2" crossorigin>
         <link rel="preload" href="/static/fonts/jbmono-nl-nerd-bold.woff2" as="font" type="font/woff2" crossorigin>
-        <link rel="stylesheet" href="/static/css/style.css?v={{css_version}}">
+        <link rel="stylesheet" href="{{/static/css/style.css}}">
         <script>
+            // Inline in <head> so the theme is set before the first paint. The toggle is in template.js
             (() => {
-                const root = document.documentElement;
                 let theme = null;
                 try { theme = localStorage.getItem("theme"); } catch (error) { /* storage is blocked */ }
                 if (theme !== "light" && theme !== "dark") {
                     theme = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
                 }
-                root.dataset.theme = theme;
-                document.addEventListener("click", (event) => {
-                    if (!event.target.closest("#theme-toggle")) return;
-                    theme = theme === "light" ? "dark" : "light";
-                    root.dataset.theme = theme;
-                    try { localStorage.setItem("theme", theme); } catch (error) { /* storage is blocked */ }
-                });
+                document.documentElement.dataset.theme = theme;
             })();
         </script>
+        <script defer src="{{/static/js/template.js}}"></script>
     </head>
     <body>
         <header class="tabline">
@@ -36,7 +31,7 @@
                     <li><a href="/">opinions</a></li>
                     <li><a href="https://github.com/NDedu/myOS" target="_blank" rel="noopener">my_os</a></li>
                 </ul>
-                <a class="login" href="/">login</a>
+                <a class="login" href="/login">login</a>
                 <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle color theme" title="Toggle color theme"></button>
             </nav>
         </header>
@@ -45,10 +40,10 @@
         </main>
         <footer class="statusline">
             <div class="column">
+                <span class="status" id="status" data-status="{{status}}">{{status}}</span>
                 <span class="here">narcis@dedu:{{path}}$</span>
                 <span class="meta"><a href="https://github.com/NDedu/site" target="_blank" rel="noopener">source</a> · © Narcis Dedu</span>
             </div>
         </footer>
-        {{scripts}}
     </body>
 </html>

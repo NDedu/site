@@ -14,7 +14,7 @@ test_common_headers :: proc(t: ^testing.T) {
 	handler.handle(&handler, &req, &res);
 
 	testing.expect_value(t, fake.calls, 1);
-	testing.expect_value(t, fake.headers_seen, http.headers_count(res.headers)); // all set before passing the request on
+	testing.expect_value(t, fake.headers_seen, http.headers_count(res.headers)); // all set before calling next
 	testing.expect_value(t, http.headers_get_unsafe(res.headers, "content-security-policy"), "base-uri 'self'; object-src 'none'; frame-ancestors 'none'");
 	testing.expect_value(t, http.headers_get_unsafe(res.headers, "referrer-policy"), "strict-origin-when-cross-origin");
 	testing.expect_value(t, http.headers_get_unsafe(res.headers, "x-content-type-options"), "nosniff");

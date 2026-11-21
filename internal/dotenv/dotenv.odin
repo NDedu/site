@@ -1,5 +1,3 @@
-// internal/dotenv
-// Loads a .env file into the environment
 package dotenv
 
 import "base:runtime"
@@ -33,6 +31,7 @@ load :: proc(path: string, scratch: runtime.Allocator) -> (line_number: int, err
 		if !line_ok {
 			return line_number, .Syntax;
 		}
+		// Variables already in the environment win over .env
 		if _, exists := os.lookup_env(key, scratch); exists {
 			continue;
 		}
@@ -65,7 +64,7 @@ parse_line :: proc(raw: []u8) -> (key, value: string, ok, is_empty: bool) {
 		}
 	}
 
-	after_eq := line[eq_idx + 1:]; // untrimmed, so `KEY= # note` keeps the space before its #
+	after_eq := line[eq_idx + 1:]; // untrimmed, so "KEY= # note" still has the space before #
 	rest := strings.trim_space(after_eq);
 	switch {
 	case rest == "":
@@ -98,7 +97,7 @@ parse_line :: proc(raw: []u8) -> (key, value: string, ok, is_empty: bool) {
 				case 'n': char = '\n';
 				case 't': char = '\t';
 				case 'r': char = '\r';
-				case:     char = buffer[read_idx]; // \" \\ and anything else: the character itself
+				case:     char = buffer[read_idx]; // \" \\ and unknown escapes: the char itself
 				}
 			}
 			buffer[write_idx] = char;
@@ -114,7 +113,6 @@ parse_line :: proc(raw: []u8) -> (key, value: string, ok, is_empty: bool) {
 	}
 }
 
-// After a closing quote, only whitespace or a comment may follow
 @(private)
 is_blank_or_comment :: proc(tail: string) -> bool {
 	trimmed := strings.trim_space(tail);

@@ -12,7 +12,6 @@ test_cors_options := Cors_Options{
 	max_age         = "600",
 }
 
-// cors_set_headers for a request with these headers
 check_cors :: proc(opts: ^Cors_Options, method: http.Method, headers: ..[2]string) -> (preflight: bool, res: http.Response) {
 	req := fake_request(method, "/api", ..headers);
 	res = fake_response();
@@ -69,7 +68,7 @@ test_cors_preflight :: proc(t: ^testing.T) {
 
 @(test)
 test_cors_options_request_that_is_not_a_preflight :: proc(t: ^testing.T) {
-	// No Access-Control-Request-Method: an OPTIONS request for the router
+	// No Access-Control-Request-Method, so a plain OPTIONS request for the router
 	preflight, res := check_cors(&test_cors_options, .Options, {"Origin", ALLOWED_ORIGIN});
 	testing.expect(t, !preflight, "preflight answered");
 	testing.expect_value(t, http.headers_get_unsafe(res.headers, "access-control-allow-origin"), ALLOWED_ORIGIN);
@@ -94,7 +93,7 @@ test_cors_passes_other_requests_on :: proc(t: ^testing.T) {
 	res := fake_response();
 	handler.handle(&handler, &req, &res);
 	testing.expect_value(t, fake.calls, 1);
-	testing.expect_value(t, fake.headers_seen, http.headers_count(res.headers)); // all set before passing the request on
+	testing.expect_value(t, fake.headers_seen, http.headers_count(res.headers)); // all set before calling next
 
 	req = fake_request(.Options, "/", {"Origin", "https://other.test"}, {"Access-Control-Request-Method", "POST"});
 	res = fake_response();

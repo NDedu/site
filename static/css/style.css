@@ -22,7 +22,7 @@
     font-display: swap;
 }
 
-/* Colors. Dark is the default; the script in template.html sets data-theme on <html>. */
+/* Dark by default, the inline script in template.html sets data-theme */
 :root {
     color-scheme: dark;
     --background: #1F1F1F;  /* Normal */
@@ -88,7 +88,7 @@ body {
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font);
-    font-size: 0.9375rem; /* 15px at the default 16px, and it follows the reader's font-size setting */
+    font-size: 0.9375rem; /* 15px, but follows the browser's font size setting */
     line-height: 1.6;
     overflow-wrap: break-word;
 }
@@ -98,7 +98,7 @@ h1, h2, h3, p, ul, pre {
 }
 
 h1, h2, h3 {
-    font-size: inherit; /* one text size, like a terminal; weight and marks do the work */
+    font-size: inherit; /* one size, like a terminal */
 }
 
 pre, code, kbd, samp {
@@ -124,7 +124,7 @@ a:hover {
     outline-offset: 2px;
 }
 
-/* Layout: the full width, like a terminal, with a small gutter at the sides */
+/* Layout: full width, like a terminal */
 
 .column {
     width: 100%;
@@ -195,7 +195,7 @@ a:hover {
 }
 
 @media (pointer: coarse) {
-    /* a slightly taller bar for fingers */
+    /* taller for touch */
     .tabs a,
     .login,
     .theme-toggle {
@@ -217,7 +217,7 @@ a:hover {
     color: var(--faint); /* the "# " before a heading */
 }
 
-/* Home: intro */
+/* Home and not found: intro */
 
 .intro {
     display: flex;
@@ -260,6 +260,118 @@ a:hover {
     font-weight: 700;
 }
 
+/* Float: a box with its title on the top border, like a Neovim float */
+
+.float {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 58ch;
+    margin: auto; /* centered in .page, a flex column */
+    padding: 0 2ch 1.25rem;
+    border: 1px solid var(--border);
+}
+
+.float-title {
+    width: fit-content;
+    margin: -0.8em 0 0 -1ch; /* up half a line, so the border goes through the text */
+    padding: 0 1ch;
+    background: var(--background); /* hides the border behind the title, must match what's under the float */
+}
+
+/* Forms */
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.field input {
+    width: 100%;
+    height: 2.125rem;
+    margin: 0;
+    padding: 0 1ch;
+    border: 1px solid var(--border);
+    border-radius: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font: inherit;
+}
+
+.field input[aria-invalid="true"] {
+    border-color: var(--rose);
+}
+
+.field-hint {
+    color: var(--muted);
+}
+
+.field-error,
+.form-message[data-tone="error"] {
+    color: var(--rose);
+}
+
+.form-message[data-tone="warn"] {
+    color: var(--wood);
+}
+
+.form-message[data-tone="ok"] {
+    color: var(--leaf);
+}
+
+.field-error:empty,
+.form-message:empty,
+.field-error:not(:empty) + .field-hint { /* no hint while there's an error */
+    display: none;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2ch;
+    padding-top: 0.5rem;
+}
+
+/* Buttons: like the tabs, the primary one inverted */
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    height: 2.125rem;
+    margin: 0;
+    padding: 0 2ch;
+    border: 0;
+    border-radius: 0;
+    background: var(--bar);
+    color: var(--foreground);
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.button:hover {
+    background: var(--selection);
+}
+
+.button.primary {
+    background: var(--foreground);
+    color: var(--background);
+    font-weight: 700;
+}
+
+.button.primary:hover {
+    background: var(--on-fill);
+}
+
+@media (pointer: coarse) {
+    .field input,
+    .button {
+        height: 2.75rem; /* 44px touch target */
+    }
+}
+
 /* Status line */
 
 .statusline {
@@ -270,6 +382,27 @@ a:hover {
     display: flex;
     flex-wrap: wrap;
     gap: 0 2ch;
+}
+
+/* Like lualine's mode. Text in the background color, contrast 4.84:1 or more in both themes */
+.statusline .status {
+    margin-left: -1ch; /* starts in the gutter so the text lines up with the page */
+    padding: 0 1ch;
+    background: var(--muted); /* none */
+    color: var(--background);
+    font-weight: 700;
+}
+
+.statusline .status[data-status="ok"] {
+    background: var(--leaf);
+}
+
+.statusline .status[data-status="warn"] {
+    background: var(--wood);
+}
+
+.statusline .status[data-status="error"] {
+    background: var(--rose);
 }
 
 .statusline .here {

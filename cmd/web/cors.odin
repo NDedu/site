@@ -3,13 +3,13 @@ package main
 import http "../../odin-http"
 
 Cors_Options :: struct {
-	allowed_origins: []string, // as browsers send them: "https://example.com", no trailing slash. "*" allows any
-	allowed_methods: string,   // the rest are only sent in answer to a preflight
+	allowed_origins: []string, // exact, like "https://example.com" without a trailing slash, or "*"
+	allowed_methods: string,   // this and below are only sent on preflights
 	allowed_headers: string,
-	max_age:         string,   // seconds a browser may reuse a preflight answer
+	max_age:         string,   // seconds a browser caches the preflight response
 }
 
-// No origins: other sites can't read the responses
+// No origins, so other sites can't read the responses
 cors_options := Cors_Options{
 	allowed_origins = {},
 	allowed_methods = "GET, POST",
@@ -17,7 +17,7 @@ cors_options := Cors_Options{
 	max_age         = "600",
 }
 
-// Lets the allowed origins read responses. Anything else goes on unchanged, so a preflight from another origin reaches the router and fails there
+// Other origins pass through unchanged, so their preflights get a 404 from the router
 cors :: proc(next: ^http.Handler, opts: ^Cors_Options) -> http.Handler {
 	h := http.middleware_proc(next, proc(self: ^http.Handler, req: ^http.Request, res: ^http.Response) {
 		if cors_set_headers((^Cors_Options)(self.user_data), req, res) {
@@ -31,12 +31,12 @@ cors :: proc(next: ^http.Handler, opts: ^Cors_Options) -> http.Handler {
 	return h;
 }
 
-// True for a preflight from an allowed origin: it's answered with these headers alone
+// True for a preflight from an allowed origin, which cors answers with a 204
 cors_set_headers :: proc(opts: ^Cors_Options, req: ^http.Request, res: ^http.Response) -> (preflight: bool) {
 	if len(opts.allowed_origins) == 0 {
 		return false;
 	}
-	// The answer depends on Origin, so caches must keep one per origin
+	// The response depends on Origin, caches need one copy per origin
 	http.headers_set_unsafe(&res.headers, "vary", "Origin");
 
 	origin, has_origin := http.headers_get_unsafe(req.headers, "origin");
@@ -49,7 +49,6 @@ cors_set_headers :: proc(opts: ^Cors_Options, req: ^http.Request, res: ^http.Res
 	}
 	http.headers_set_unsafe(&res.headers, "access-control-allow-origin", allow_origin);
 
-	// A preflight asks whether the real request may be sent
 	if req.line.(http.Requestline).method != .Options || !http.headers_has_unsafe(req.headers, "access-control-request-method") {
 		return false;
 	}
@@ -59,7 +58,6 @@ cors_set_headers :: proc(opts: ^Cors_Options, req: ^http.Request, res: ^http.Res
 	return true;
 }
 
-// The Access-Control-Allow-Origin value for origin, if it's allowed
 cors_allow_origin :: proc(allowed_origins: []string, origin: string) -> (value: string, ok: bool) {
 	for allowed in allowed_origins {
 		if allowed == "*" {

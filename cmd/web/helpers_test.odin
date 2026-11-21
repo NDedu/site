@@ -11,10 +11,7 @@ import "core:thread"
 import "core:time"
 import http "../../odin-http"
 
-// Helpers for this package's tests
-
-// A request as the server hands it to a handler, to call one without a server.
-// Only for handlers that don't respond: http.respond needs a real connection.
+// For calling a handler without a server. Not for handlers that respond, http.respond needs a real connection
 fake_request :: proc(method: http.Method, target: string, headers: ..[2]string) -> (req: http.Request) {
 	http.request_init(&req, context.temp_allocator);
 	req.line = http.Requestline{method = method, target = target, version = {1, 1}};
@@ -30,7 +27,6 @@ fake_response :: proc() -> (res: http.Response) {
 	return;
 }
 
-// Stands in for the handler a middleware wraps
 Fake_Next :: struct {
 	calls:        int,
 	headers_seen: int, // response headers already set when it ran
@@ -47,7 +43,7 @@ fake_next :: proc(fake: ^Fake_Next) -> http.Handler {
 	};
 }
 
-// A real server on a free port, on a thread of its own
+// A real server on a free port, in its own thread
 Test_Server :: struct {
 	server:    http.Server,
 	handler:   http.Handler,
@@ -58,13 +54,13 @@ Test_Server :: struct {
 	allocator: runtime.Allocator,
 }
 
-// Returns once the server accepts connections. Call test_server_stop even when it fails.
+// Returns once the server is listening. Call test_server_stop even if it fails
 test_server_start :: proc(t: ^testing.T, ts: ^Test_Server, handler: http.Handler) -> bool {
 	testing.set_fail_timeout(t, 30 * time.Second);
 	ts.handler = handler;
-	ts.allocator = context.allocator; // the test's, so its memory report covers the server too
+	ts.allocator = context.allocator; // the test's allocator, so server leaks fail the test
 	ts.thread = thread.create_and_start_with_poly_data(ts, proc(ts: ^Test_Server) {
-		// Otherwise a context of its own: the test's logger and temp allocator aren't safe to share
+		// Only the allocator is shared, the test's logger and temp allocator aren't thread-safe
 		context.allocator = ts.allocator;
 
 		opts := http.Default_Server_Opts;
@@ -90,7 +86,7 @@ test_server_stop :: proc(ts: ^Test_Server) {
 	thread.destroy(ts.thread);
 }
 
-// The site as it runs: its routes behind every middleware
+// The routes behind all the middleware, like in main
 Test_Site :: struct {
 	using test_server: Test_Server,
 	router:            http.Router,
@@ -114,7 +110,6 @@ Test_Response :: struct {
 	body:    string,
 }
 
-// Sends one request on a new connection and reads all of the response
 send_request :: proc(t: ^testing.T, port: int, method, target: string, headers: ..[2]string, loc := #caller_location) -> (res: Test_Response, ok: bool) {
 	socket, dial_err := net.dial_tcp_from_endpoint(net.Endpoint{address = net.IP4_Loopback, port = port});
 	if !testing.expectf(t, dial_err == nil, "%s %s: connecting: %v", method, target, dial_err, loc = loc) {
@@ -123,7 +118,7 @@ send_request :: proc(t: ^testing.T, port: int, method, target: string, headers: 
 	defer net.close(socket);
 	net.set_option(socket, .Receive_Timeout, 5 * time.Second);
 
-	// Connection: close, so the server closes the connection once it has answered, and reading stops there
+	// With Connection: close the server closes the socket after answering, so read until EOF
 	request := strings.builder_make(context.temp_allocator);
 	fmt.sbprintf(&request, "%s %s HTTP/1.1\r\nHost: test\r\nConnection: close\r\n", method, target);
 	for header in headers {
@@ -152,7 +147,7 @@ send_request :: proc(t: ^testing.T, port: int, method, target: string, headers: 
 		append(&received, ..buf[:n]);
 	}
 
-	// "HTTP/1.1 200 " then a line per header, a blank line and the body
+	// "HTTP/1.1 200 OK", the headers, a blank line, the body
 	head, _, body := strings.partition(string(received[:]), "\r\n\r\n");
 	status_line, _ := strings.split_iterator(&head, "\r\n");
 	if !testing.expectf(t, len(status_line) >= 12 && strings.has_prefix(status_line, "HTTP/1.1 "), "%s %s: not an HTTP response: %q", method, target, string(received[:]), loc = loc) {
