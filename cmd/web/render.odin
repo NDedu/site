@@ -27,6 +27,12 @@ Page :: struct {
 	path:        string, // set by render_page, e.g. ~/login
 	content:     string,
 	form:        Form,
+	// TODO: set by render from the session once there's login
+	logged_in:   bool,
+	admin:       bool,
+	csrf:        string, // every POST form needs it, so not in Form
+	notice:      string, // result of an action, e.g. review deleted
+	data:        any,    // the page's own, read by its template before these fields. The layout doesn't see it
 }
 
 // Not escaped. Only for HTML the site generates, like rendered Markdown, never user input
@@ -42,7 +48,6 @@ Status :: enum {
 
 Form :: struct {
 	message: string, // form-wide error, e.g. wrong password
-	csrf:    string,
 	inputs:  []Input,
 }
 
@@ -108,13 +113,24 @@ write_template :: proc(out: ^strings.Builder, template: string, scope: ^Scope, i
 			if in_content {
 				write_placeholder(out, name); // would recurse forever
 			} else {
-				write_template(out, (^string)(value.data)^, scope, in_content = true);
+				write_content(out, (^string)(value.data)^, scope);
 			}
 		case:
 			write_value(out, value);
 		}
 	}
 	strings.write_string(out, rest);
+}
+
+// data's names come before the page's
+write_content :: proc(out: ^strings.Builder, content: string, scope: ^Scope) {
+	data, found, at_root := lookup(scope, "data");
+	if !found || !at_root || data.id != any || (^any)(data.data)^ == nil {
+		write_template(out, content, scope, in_content = true);
+		return;
+	}
+	inner := Scope{value = (^any)(data.data)^, parent = scope};
+	write_template(out, content, &inner, in_content = true);
 }
 
 write_section :: proc(out: ^strings.Builder, body: string, scope: ^Scope, value: any, inverted, in_content: bool) {

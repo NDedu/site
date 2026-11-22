@@ -71,6 +71,22 @@ test_render_page_fills_the_content :: proc(t: ^testing.T) {
 	testing.expect_value(t, render_page("<main>{{content}}</main>", page, "/", context.temp_allocator), "<main><h1>{{status}}</h1>{{content}}</main>");
 }
 
+// The page's template reads data's names before the page's, the layout doesn't see them
+@(test)
+test_render_page_reads_data_in_the_content :: proc(t: ^testing.T) {
+	page := Page{
+		title   = "T",
+		status  = .Ok,
+		content = "{{title}} {{status}}{{#posts}} {{title}}{{/posts}}",
+		data    = struct { title: string, posts: []Test_Post }{title = "D", posts = {{title = "p"}}},
+	};
+	testing.expect_value(t, render_page("{{title}} {{posts}}|{{content}}", page, "/", context.temp_allocator), "T {{posts}}|D ok p");
+	// Behind a nil pointer it's all empty
+	user: ^Test_User;
+	page = Page{content = "[{{name}}]{{#name}}x{{/name}}", data = user};
+	testing.expect_value(t, render_page("{{content}}", page, "/", context.temp_allocator), "[]");
+}
+
 @(test)
 test_render_page_leaves_unknown_and_unclosed_placeholders :: proc(t: ^testing.T) {
 	page := Page{title = "T"};
@@ -97,7 +113,7 @@ test_layout_has_only_known_placeholders :: proc(t: ^testing.T) {
 
 @(test)
 test_render_page_fills_a_blank_form :: proc(t: ^testing.T) {
-	template := "{{status}}|{{form.message}}|{{form.csrf}}|{{value email}}|{{error email}}|{{invalid email}}";
+	template := "{{status}}|{{form.message}}|{{csrf}}|{{value email}}|{{error email}}|{{invalid email}}";
 	testing.expect_value(t, render_page(template, Page{}, "/", context.temp_allocator), "none|||||false");
 }
 
@@ -175,8 +191,8 @@ test_render_template_repeats_a_section_for_each_item :: proc(t: ^testing.T) {
 // Inside a section the item's fields come first, then the page's
 @(test)
 test_render_template_reads_the_page_inside_a_section :: proc(t: ^testing.T) {
-	data := Test_Data{title = "page", admin = true, form = {csrf = "c"}, posts = []Test_Post{{title = "a"}, {title = "b"}}};
-	testing.expect_value(t, render_template("{{#posts}}{{title}} {{form.csrf}}{{#admin}} edit{{/admin}}|{{/posts}}", data, context.temp_allocator), "a c edit|b c edit|");
+	data := Test_Data{title = "page", admin = true, form = {message = "m"}, posts = []Test_Post{{title = "a"}, {title = "b"}}};
+	testing.expect_value(t, render_template("{{#posts}}{{title}} {{form.message}}{{#admin}} edit{{/admin}}|{{/posts}}", data, context.temp_allocator), "a m edit|b m edit|");
 }
 
 @(test)
@@ -206,12 +222,13 @@ test_render_template_hides_a_broken_section :: proc(t: ^testing.T) {
 }
 
 // Every name in every template exists, also inside sections the page tests never render,
-// and Html fields are only used between tags
+// and Html fields are only used between tags. data's type isn't known here, so in a page's
+// template a name that isn't the page's counts as data's
 @(test)
 test_templates_use_known_names :: proc(t: ^testing.T) {
 	files := #load_directory("templates");
 	for file in files {
-		name, why := unknown_name(string(file.data), Page);
+		name, why := unknown_name(string(file.data), Page, has_data = file.name != "template.html");
 		testing.expectf(t, why == "", "%s: %q %s", file.name, name, why);
 	}
 }
@@ -240,15 +257,33 @@ test_unknown_name_finds_each_mistake :: proc(t: ^testing.T) {
 	testing.expectf(t, why == "", "%q %s", name, why);
 }
 
-// The first name render wouldn't know and why, why is "" if there's none
-unknown_name :: proc(template: string, root: typeid) -> (name, why: string) {
+// The rest is still checked
+@(test)
+test_unknown_name_takes_other_names_as_data :: proc(t: ^testing.T) {
+	fine := "{{reviews}}{{#reviews}}{{rating}}{{#tags}}{{.}}{{/tags}}{{title}}{{/reviews}}{{^reviews}}{{count}}{{/reviews}}";
+	name, why := unknown_name(fine, Test_Data, has_data = true);
+	testing.expectf(t, why == "", "%q %s", name, why);
+	mistakes := [?]string{
+		"{{posts}}",
+		"{{#reviews}}",
+		"{{#reviews}}{{/static/nope.css}}{{/reviews}}",
+	};
+	for template in mistakes {
+		_, why = unknown_name(template, Test_Data, has_data = true);
+		testing.expectf(t, why != "", "%q isn't caught", template);
+	}
+}
+
+// The first name render wouldn't know and why, why is "" if there's none.
+// With has_data, names that aren't fields count as data's, and so does what's inside their sections
+unknown_name :: proc(template: string, root: typeid, has_data := false) -> (name, why: string) {
 	scope := Scope{value = to_any(nil, root)};
 	html: Html_Scan;
-	return unknown_name_in(template, &scope, &html);
+	return unknown_name_in(template, &scope, &html, has_data);
 }
 
 // html is the HTML state where template starts, and is moved past it
-unknown_name_in :: proc(template: string, scope: ^Scope, html: ^Html_Scan) -> (name, why: string) {
+unknown_name_in :: proc(template: string, scope: ^Scope, html: ^Html_Scan, has_data: bool) -> (name, why: string) {
 	rest := template;
 	for before, placeholder in next_placeholder(&rest) {
 		scan_html(html, before);
@@ -262,13 +297,13 @@ unknown_name_in :: proc(template: string, scope: ^Scope, html: ^Html_Scan) -> (n
 				return name, "isn't closed";
 			}
 			value, found, _ := lookup(scope, name[1:]);
-			if !found {
+			if !found && !has_data {
 				return name, "isn't a field, of the page or of an item around it";
 			}
-			// Inside, names are looked up on the item
+			// Inside, names are looked up on the item. A data item's type isn't known, it stays nil
 			_, _, _, item, goes_in := section_items(value);
 			inner := Scope{value = to_any(nil, item), parent = scope};
-			inner_name, inner_why := unknown_name_in(body, &inner if goes_in && name[0] == '#' else scope, html);
+			inner_name, inner_why := unknown_name_in(body, &inner if (goes_in || !found) && name[0] == '#' else scope, html, has_data);
 			if inner_why != "" {
 				return inner_name, inner_why;
 			}
@@ -283,6 +318,9 @@ unknown_name_in :: proc(template: string, scope: ^Scope, html: ^Html_Scan) -> (n
 				continue;
 			}
 			value, found, _ := lookup(scope, name);
+			if has_data && (!found || value.id == nil) {
+				continue; // data's, or {{.}} of a data item
+			}
 			if !found {
 				return name, "isn't a field, of the page or of an item around it";
 			}
