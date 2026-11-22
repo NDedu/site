@@ -32,8 +32,7 @@
     --rule: #595959;        /* NonText */
     --border: #7C7C7C;      /* FloatBorder */
     --bar: #373737;         /* StatusLine, TabLine */
-    --bar-fill: #2A2A2A;    /* StatusLineNC, TabLineFill */
-    --on-fill: #A6A6A6;     /* text on --bar-fill */
+    --on-fill: #A6A6A6;     /* primary button hover */
     --surface: #282828;     /* CursorLine */
     --selection: #474747;   /* Visual */
     --code: #989898;        /* Type */
@@ -55,7 +54,6 @@
     --rule: #AEAEAE;
     --border: #6F6F6F;
     --bar: #CFCFCF;
-    --bar-fill: #DDDDDD;
     --on-fill: #505050;
     --surface: #E5E5E5;
     --selection: #D7D7D7;
@@ -134,7 +132,7 @@ a:hover {
 /* Tab bar, like vim's tabline */
 
 .tabline {
-    background: var(--bar-fill);
+    background: var(--bar);
 }
 
 .tabline .column {
@@ -154,14 +152,12 @@ a:hover {
 .tabs a {
     display: block;
     padding: 0 1ch;
-    background: var(--bar);
     text-decoration: none;
 }
 
 .login {
     margin-left: auto;
     padding: 0 1ch;
-    background: var(--bar);
     text-decoration: none;
 }
 
@@ -170,7 +166,7 @@ a:hover {
     padding: 0 1.5ch 0 1ch; /* Nerd Font icons are drawn wider than one cell */
     border: 0;
     border-radius: 0;
-    background: var(--bar);
+    background: none;
     color: var(--foreground);
     font: inherit;
     cursor: pointer;
