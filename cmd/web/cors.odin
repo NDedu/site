@@ -21,51 +21,51 @@ cors_options := Cors_Options{
 cors :: proc(next: ^http.Handler, opts: ^Cors_Options) -> http.Handler {
 	h := http.middleware_proc(next, proc(self: ^http.Handler, req: ^http.Request, res: ^http.Response) {
 		if cors_set_headers((^Cors_Options)(self.user_data), req, res) {
-			http.respond(res, http.Status.No_Content);
-			return;
+			http.respond(res, http.Status.No_Content)
+			return
 		}
-		next := self.next.(^http.Handler);
-		next.handle(next, req, res);
-	});
-	h.user_data = opts;
-	return h;
+		next := self.next.(^http.Handler)
+		next.handle(next, req, res)
+	})
+	h.user_data = opts
+	return h
 }
 
 // True for a preflight from an allowed origin, which cors answers with a 204
 cors_set_headers :: proc(opts: ^Cors_Options, req: ^http.Request, res: ^http.Response) -> (preflight: bool) {
 	if len(opts.allowed_origins) == 0 {
-		return false;
+		return false
 	}
 	// The response depends on Origin, caches need one copy per origin
-	http.headers_set_unsafe(&res.headers, "vary", "Origin");
+	http.headers_set_unsafe(&res.headers, "vary", "Origin")
 
-	origin, has_origin := http.headers_get_unsafe(req.headers, "origin");
+	origin, has_origin := http.headers_get_unsafe(req.headers, "origin")
 	if !has_origin {
-		return false;
+		return false
 	}
-	allow_origin, allowed := cors_allow_origin(opts.allowed_origins, origin);
+	allow_origin, allowed := cors_allow_origin(opts.allowed_origins, origin)
 	if !allowed {
-		return false;
+		return false
 	}
-	http.headers_set_unsafe(&res.headers, "access-control-allow-origin", allow_origin);
+	http.headers_set_unsafe(&res.headers, "access-control-allow-origin", allow_origin)
 
 	if req.line.(http.Requestline).method != .Options || !http.headers_has_unsafe(req.headers, "access-control-request-method") {
-		return false;
+		return false
 	}
-	http.headers_set_unsafe(&res.headers, "access-control-allow-methods", opts.allowed_methods);
-	http.headers_set_unsafe(&res.headers, "access-control-allow-headers", opts.allowed_headers);
-	http.headers_set_unsafe(&res.headers, "access-control-max-age", opts.max_age);
-	return true;
+	http.headers_set_unsafe(&res.headers, "access-control-allow-methods", opts.allowed_methods)
+	http.headers_set_unsafe(&res.headers, "access-control-allow-headers", opts.allowed_headers)
+	http.headers_set_unsafe(&res.headers, "access-control-max-age", opts.max_age)
+	return true
 }
 
 cors_allow_origin :: proc(allowed_origins: []string, origin: string) -> (value: string, ok: bool) {
 	for allowed in allowed_origins {
 		if allowed == "*" {
-			return "*", true;
+			return "*", true
 		}
 		if allowed == origin {
-			return origin, true;
+			return origin, true
 		}
 	}
-	return "", false;
+	return "", false
 }

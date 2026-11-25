@@ -1,36 +1,36 @@
 <form class="float" method="post" action="/register" novalidate aria-labelledby="register-title">
-    <h1 class="float-title" id="register-title">register</h1>
-    <p class="form-message" id="form-message" data-tone="{{status}}" role="alert">{{form.message}}</p>
-    <input type="hidden" name="csrf" value="{{csrf}}">
-    <div class="field">
-        <label for="email">email</label>
-        <input id="email" name="email" type="email" required
-               autocomplete="email" autocapitalize="none" spellcheck="false"
-               value="{{value email}}" aria-invalid="{{invalid email}}" aria-describedby="email-error"
-               data-value-missing="enter your email" data-type-mismatch="not a valid email address">
-        <p class="field-error" id="email-error">{{error email}}</p>
-    </div>
-    <div class="field">
-        <label for="password">password</label>
-        <input id="password" name="password" type="password" required minlength="8"
-               autocomplete="new-password"
-               aria-invalid="{{invalid password}}" aria-describedby="password-error password-hint"
-               data-value-missing="choose a password" data-too-short="use at least 8 characters">
-        <p class="field-error" id="password-error">{{error password}}</p>
-        <p class="field-hint" id="password-hint">at least 8 characters: a few words in a row work well</p>
-    </div>
-    <div class="field">
-        <label for="repeat">password again</label>
-        <input id="repeat" name="repeat" type="password" required
-               autocomplete="new-password"
-               aria-invalid="{{invalid repeat}}" aria-describedby="repeat-error"
-               data-value-missing="type the password again" data-match="password" data-mismatch="passwords don't match">
-        <p class="field-error" id="repeat-error">{{error repeat}}</p>
-    </div>
-    <div class="actions">
-        <button class="button primary" type="submit">register</button>
-        <a class="button" href="/login">login</a>
-    </div>
+  <h1 class="float-title" id="register-title">register</h1>
+  <p class="form-message" id="form-message" data-tone="{{status}}" role="alert">{{form.message}}</p>
+  <input type="hidden" name="csrf" value="{{csrf}}">
+  <div class="field">
+    <label for="email">email</label>
+    <input id="email" name="email" type="email" required
+           autocomplete="email" autocapitalize="none" spellcheck="false"
+           value="{{value email}}" aria-invalid="{{invalid email}}" aria-describedby="email-error"
+           data-value-missing="enter your email" data-type-mismatch="not a valid email address">
+    <p class="field-error" id="email-error">{{error email}}</p>
+  </div>
+  <div class="field">
+    <label for="password">password</label>
+    <input id="password" name="password" type="password" required minlength="8"
+           autocomplete="new-password"
+           aria-invalid="{{invalid password}}" aria-describedby="password-error password-hint"
+           data-value-missing="choose a password" data-too-short="use at least 8 characters">
+    <p class="field-error" id="password-error">{{error password}}</p>
+    <p class="field-hint" id="password-hint">at least 8 characters: a few words in a row work well</p>
+  </div>
+  <div class="field">
+    <label for="repeat">password again</label>
+    <input id="repeat" name="repeat" type="password" required
+           autocomplete="new-password"
+           aria-invalid="{{invalid repeat}}" aria-describedby="repeat-error"
+           data-value-missing="type the password again" data-match="password" data-mismatch="passwords don't match">
+    <p class="field-error" id="repeat-error">{{error repeat}}</p>
+  </div>
+  <div class="actions">
+    <button class="button primary" type="submit">register</button>
+    <a class="button" href="/login">login</a>
+  </div>
 </form>
 <script defer src="{{/static/js/forms.js}}"></script>
 <script defer src="{{/static/js/register.js}}"></script>

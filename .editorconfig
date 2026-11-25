@@ -1,0 +1,31 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_size = 4
+tab_width = 4
+
+[{*.odin,*.go,*.c,*.h,*.tmpl,Makefile}]
+indent_style = tab
+
+[{*.zig,zig.tmpl}]
+indent_style = space
+
+[{*.sh,*.bash,*.lua}]
+indent_style = space
+indent_size = 2
+
+[*.html]
+indent_style = space
+indent_size = 2
+
+[{*.yml,*.yaml}]
+indent_style = space
+indent_size = 2
+
+# Two trailing spaces are a line break in Markdown, and part of the content in a patch
+[{*.md,*.diff,*.patch}]
+trim_trailing_whitespace = false

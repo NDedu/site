@@ -59,23 +59,23 @@ Input :: struct {
 
 render :: proc(req: ^http.Request, res: ^http.Response, page: Page, http_status := http.Status.OK) {
 	// temp_allocator is freed after the response is sent
-	http.respond_html(res, render_page(LAYOUT, page, req.url.path, context.temp_allocator), http_status);
+	http.respond_html(res, render_page(LAYOUT, page, req.url.path, context.temp_allocator), http_status)
 }
 
 render_page :: proc(layout: string, page: Page, url_path: string, allocator := context.allocator) -> string {
-	page := page;
+	page := page
 	if page.title == "" {
-		page.title = DEFAULT_TITLE;
+		page.title = DEFAULT_TITLE
 	}
-	page.path = strings.concatenate({"~", strings.trim_right(url_path, "/")}, context.temp_allocator);
-	return render_template(layout, page, allocator);
+	page.path = strings.concatenate({"~", strings.trim_right(url_path, "/")}, context.temp_allocator)
+	return render_template(layout, page, allocator)
 }
 
 render_template :: proc(template: string, data: any, allocator := context.allocator) -> string {
-	out := strings.builder_make(0, 2 * len(template) + 1024, allocator);
-	root := Scope{value = data};
-	write_template(&out, template, &root);
-	return strings.to_string(out);
+	out := strings.builder_make(0, 2 * len(template) + 1024, allocator)
+	root := Scope{value = data}
+	write_template(&out, template, &root)
+	return strings.to_string(out)
 }
 
 Scope :: struct {
@@ -85,68 +85,68 @@ Scope :: struct {
 
 // Values are never scanned for placeholders, so they can't inject one
 write_template :: proc(out: ^strings.Builder, template: string, scope: ^Scope, in_content := false) {
-	rest := template;
+	rest := template
 	for before, name in next_placeholder(&rest) {
-		strings.write_string(out, before);
+		strings.write_string(out, before)
 		if strings.has_prefix(name, "#") || strings.has_prefix(name, "^") {
-			body, closed := cut_section(&rest, name[1:]);
-			value, found, _ := lookup(scope, name[1:]);
+			body, closed := cut_section(&rest, name[1:])
+			value, found, _ := lookup(scope, name[1:])
 			if !closed || !found {
 				// Keep the tag and hide the body, so a typo can't leak role-only content
-				write_placeholder(out, name);
+				write_placeholder(out, name)
 				if !closed {
-					return;
+					return
 				}
-				continue;
+				continue
 			}
-			write_section(out, body, scope, value, name[0] == '^', in_content);
-			continue;
+			write_section(out, body, scope, value, name[0] == '^', in_content)
+			continue
 		}
 		if write_input(out, scope, name) || write_static_url(out, name) {
-			continue;
+			continue
 		}
-		value, found, at_root := lookup(scope, name);
+		value, found, at_root := lookup(scope, name)
 		switch {
 		case !found || !is_text(value.id):
-			write_placeholder(out, name); // left in so the typo shows on the page
+			write_placeholder(out, name) // left in so the typo shows on the page
 		case at_root && name == "content":
 			if in_content {
-				write_placeholder(out, name); // would recurse forever
+				write_placeholder(out, name) // would recurse forever
 			} else {
-				write_content(out, (^string)(value.data)^, scope);
+				write_content(out, (^string)(value.data)^, scope)
 			}
 		case:
-			write_value(out, value);
+			write_value(out, value)
 		}
 	}
-	strings.write_string(out, rest);
+	strings.write_string(out, rest)
 }
 
 // data's names come before the page's
 write_content :: proc(out: ^strings.Builder, content: string, scope: ^Scope) {
-	data, found, at_root := lookup(scope, "data");
+	data, found, at_root := lookup(scope, "data")
 	if !found || !at_root || data.id != any || (^any)(data.data)^ == nil {
-		write_template(out, content, scope, in_content = true);
-		return;
+		write_template(out, content, scope, in_content = true)
+		return
 	}
-	inner := Scope{value = (^any)(data.data)^, parent = scope};
-	write_template(out, content, &inner, in_content = true);
+	inner := Scope{value = (^any)(data.data)^, parent = scope}
+	write_template(out, content, &inner, in_content = true)
 }
 
 write_section :: proc(out: ^strings.Builder, body: string, scope: ^Scope, value: any, inverted, in_content: bool) {
-	items, count, stride, item, goes_in := section_items(value);
+	items, count, stride, item, goes_in := section_items(value)
 	switch {
 	case inverted:
 		if !is_set(value) {
-			write_template(out, body, scope, in_content);
+			write_template(out, body, scope, in_content)
 		}
 	case goes_in:
 		for i in 0..<count {
-			inner := Scope{value = to_any(rawptr(uintptr(items) + uintptr(i * stride)), item), parent = scope};
-			write_template(out, body, &inner, in_content);
+			inner := Scope{value = to_any(rawptr(uintptr(items) + uintptr(i * stride)), item), parent = scope}
+			write_template(out, body, &inner, in_content)
 		}
 	case is_set(value):
-		write_template(out, body, scope, in_content);
+		write_template(out, body, scope, in_content)
 	}
 }
 
@@ -155,206 +155,206 @@ section_items :: proc(value: any) -> (items: rawptr, count, stride: int, item: t
 	#partial switch info in reflect.type_info_base(type_info_of(value.id)).variant {
 	case runtime.Type_Info_Slice:
 		if raw := (^runtime.Raw_Slice)(value.data); raw != nil {
-			items, count = raw.data, raw.len;
+			items, count = raw.data, raw.len
 		}
-		return items, count, info.elem_size, info.elem.id, true;
+		return items, count, info.elem_size, info.elem.id, true
 	case runtime.Type_Info_Dynamic_Array:
 		if raw := (^runtime.Raw_Dynamic_Array)(value.data); raw != nil {
-			items, count = raw.data, raw.len;
+			items, count = raw.data, raw.len
 		}
-		return items, count, info.elem_size, info.elem.id, true;
+		return items, count, info.elem_size, info.elem.id, true
 	case runtime.Type_Info_Pointer:
 		if info.elem == nil {
-			return; // rawptr has no item type
+			return // rawptr has no item type
 		}
 		if pointer := (^rawptr)(value.data); pointer != nil && pointer^ != nil {
-			items, count = pointer^, 1;
+			items, count = pointer^, 1
 		}
-		return items, count, 0, info.elem.id, true;
+		return items, count, 0, info.elem.id, true
 	case runtime.Type_Info_Struct:
-		return value.data, 1 if value.data != nil else 0, 0, value.id, true;
+		return value.data, 1 if value.data != nil else 0, 0, value.id, true
 	}
-	return;
+	return
 }
 
 is_set :: proc(value: any) -> bool {
 	if value.data == nil {
-		return false; // behind a nil pointer
+		return false // behind a nil pointer
 	}
 	#partial switch info in reflect.type_info_base(type_info_of(value.id)).variant {
 	case runtime.Type_Info_String:
 		if !info.is_cstring {
-			return (^runtime.Raw_String)(value.data).len > 0;
+			return (^runtime.Raw_String)(value.data).len > 0
 		}
 	case runtime.Type_Info_Slice:
-		return (^runtime.Raw_Slice)(value.data).len > 0;
+		return (^runtime.Raw_Slice)(value.data).len > 0
 	case runtime.Type_Info_Dynamic_Array:
-		return (^runtime.Raw_Dynamic_Array)(value.data).len > 0;
+		return (^runtime.Raw_Dynamic_Array)(value.data).len > 0
 	}
-	return !reflect.is_nil(value); // is_nil is true when every byte is zero
+	return !reflect.is_nil(value) // is_nil is true when every byte is zero
 }
 
 // at_root: found on the page itself, not on a section's item
 lookup :: proc(scope: ^Scope, name: string) -> (value: any, found, at_root: bool) {
 	if name == "." {
-		return scope.value, true, scope.parent == nil;
+		return scope.value, true, scope.parent == nil
 	}
-	first, _, rest := strings.partition(name, ".");
+	first, _, rest := strings.partition(name, ".")
 	for s := scope; s != nil && !found; s = s.parent {
-		value, found = field_of(s.value, first);
-		at_root = s.parent == nil;
+		value, found = field_of(s.value, first)
+		at_root = s.parent == nil
 	}
 	for found && rest != "" {
-		next: string;
-		next, _, rest = strings.partition(rest, ".");
-		value, found = field_of(value, next);
+		next: string
+		next, _, rest = strings.partition(rest, ".")
+		value, found = field_of(value, next)
 	}
-	return;
+	return
 }
 
 // Follows pointers. Behind a nil pointer the field is still found, with nil data
 field_of :: proc(value: any, name: string) -> (field: any, found: bool) {
-	value := value;
+	value := value
 	if info, ok := reflect.type_info_base(type_info_of(value.id)).variant.(runtime.Type_Info_Pointer); ok && info.elem != nil {
-		value = to_any((^rawptr)(value.data)^ if value.data != nil else nil, info.elem.id);
+		value = to_any((^rawptr)(value.data)^ if value.data != nil else nil, info.elem.id)
 	}
-	f := reflect.struct_field_by_name(value.id, name);
+	f := reflect.struct_field_by_name(value.id, name)
 	if f.type == nil {
-		return;
+		return
 	}
-	return to_any(rawptr(uintptr(value.data) + f.offset) if value.data != nil else nil, f.type.id), true;
+	return to_any(rawptr(uintptr(value.data) + f.offset) if value.data != nil else nil, f.type.id), true
 }
 
 is_text :: proc(id: typeid) -> bool {
 	#partial switch info in reflect.type_info_base(type_info_of(id)).variant {
 	case runtime.Type_Info_String:
-		return !info.is_cstring && info.encoding == .UTF_8;
+		return !info.is_cstring && info.encoding == .UTF_8
 	case runtime.Type_Info_Enum, runtime.Type_Info_Integer, runtime.Type_Info_Float, runtime.Type_Info_Boolean:
-		return true;
+		return true
 	}
-	return false;
+	return false
 }
 
 write_value :: proc(out: ^strings.Builder, value: any) {
 	if value.data == nil {
-		return;
+		return
 	}
 	if value.id == Html {
-		strings.write_string(out, string((^Html)(value.data)^));
-		return;
+		strings.write_string(out, string((^Html)(value.data)^))
+		return
 	}
 	#partial switch _ in reflect.type_info_base(type_info_of(value.id)).variant {
 	case runtime.Type_Info_String:
-		write_text(out, (^string)(value.data)^);
+		write_text(out, (^string)(value.data)^)
 	case runtime.Type_Info_Enum:
 		for c in transmute([]byte)reflect.enum_string(value) {
-			strings.write_byte(out, c + ('a' - 'A') if 'A' <= c && c <= 'Z' else c);
+			strings.write_byte(out, c + ('a' - 'A') if 'A' <= c && c <= 'Z' else c)
 		}
 	case:
-		fmt.sbprint(out, value);
+		fmt.sbprint(out, value)
 	}
 }
 
 to_any :: proc(data: rawptr, id: typeid) -> any {
-	return transmute(any)runtime.Raw_Any{data = data, id = id};
+	return transmute(any)runtime.Raw_Any{data = data, id = id}
 }
 
 // Iterator: the text before the next {{name}}, and name. Moves rest past it
 next_placeholder :: proc(rest: ^string) -> (before, name: string, ok: bool) {
-	text := rest^;
-	from := 0;
+	text := rest^
+	from := 0
 	for {
 		// index_byte is much faster than strings.index(text, "{{")
-		brace := strings.index_byte(text[from:], '{');
+		brace := strings.index_byte(text[from:], '{')
 		if brace < 0 {
-			return;
+			return
 		}
-		open_idx := from + brace;
+		open_idx := from + brace
 		if open_idx + 1 < len(text) && text[open_idx + 1] == '{' {
-			close_idx := strings.index(text[open_idx + 2:], "}}");
+			close_idx := strings.index(text[open_idx + 2:], "}}")
 			if close_idx < 0 {
-				return;
+				return
 			}
-			close_idx += open_idx + 2;
-			rest^ = text[close_idx + 2:];
-			return text[:open_idx], text[open_idx + 2:close_idx], true;
+			close_idx += open_idx + 2
+			rest^ = text[close_idx + 2:]
+			return text[:open_idx], text[open_idx + 2:close_idx], true
 		}
-		from = open_idx + 1; // single {, e.g. in JS
+		from = open_idx + 1 // single {, e.g. in JS
 	}
 }
 
 // Cuts the body and its {{/name}} off rest. Nested sections with the same name stay in the body
 cut_section :: proc(rest: ^string, name: string) -> (body: string, closed: bool) {
-	text := rest^;
-	scan := text;
-	depth := 1;
+	text := rest^
+	scan := text
+	depth := 1
 	for _, tag in next_placeholder(&scan) {
 		if len(tag) < 2 || tag[1:] != name {
-			continue;
+			continue
 		}
 		switch tag[0] {
 		case '#', '^':
-			depth += 1;
+			depth += 1
 		case '/':
-			depth -= 1;
+			depth -= 1
 			if depth == 0 {
-				rest^ = scan;
-				return text[:len(text) - len(scan) - len(tag) - len("{{}}")], true;
+				rest^ = scan
+				return text[:len(text) - len(scan) - len(tag) - len("{{}}")], true
 			}
 		}
 	}
-	return;
+	return
 }
 
 write_placeholder :: proc(out: ^strings.Builder, name: string) {
-	strings.write_string(out, "{{");
-	strings.write_string(out, name);
-	strings.write_string(out, "}}");
+	strings.write_string(out, "{{")
+	strings.write_string(out, name)
+	strings.write_string(out, "}}")
 }
 
 // "error email" -> "error", "email"
 input_placeholder :: proc(placeholder: string) -> (what, name: string, ok: bool) {
-	what, _, name = strings.partition(placeholder, " ");
-	ok = name != "" && (what == "value" || what == "error" || what == "invalid");
-	return;
+	what, _, name = strings.partition(placeholder, " ")
+	ok = name != "" && (what == "value" || what == "error" || what == "invalid")
+	return
 }
 
 // An input that wasn't sent back renders empty
 write_input :: proc(out: ^strings.Builder, scope: ^Scope, placeholder: string) -> bool {
-	what, name, ok := input_placeholder(placeholder);
+	what, name, ok := input_placeholder(placeholder)
 	if !ok {
-		return false;
+		return false
 	}
-	input: Input;
+	input: Input
 	if form, found, _ := lookup(scope, "form"); found && form.id == Form && form.data != nil {
 		for sent in (^Form)(form.data).inputs {
 			if sent.name == name {
-				input = sent;
-				break;
+				input = sent
+				break
 			}
 		}
 	}
 	switch what {
-	case "value":   write_text(out, input.value);
-	case "error":   write_text(out, input.error);
-	case "invalid": strings.write_string(out, "true" if input.error != "" else "false");
+	case "value":   write_text(out, input.value)
+	case "error":   write_text(out, input.error)
+	case "invalid": strings.write_string(out, "true" if input.error != "" else "false")
 	}
-	return true;
+	return true
 }
 
 // /static/css/style.css -> /static/css/style.css?v=<crc32>, so the URL changes with the file
 write_static_url :: proc(out: ^strings.Builder, path: string) -> bool {
-	version, ok := static_version(path);
+	version, ok := static_version(path)
 	if !ok {
-		return false;
+		return false
 	}
-	strings.write_string(out, path);
-	strings.write_string(out, "?v=");
-	strings.write_u64(out, u64(version), 16);
-	return true;
+	strings.write_string(out, path)
+	strings.write_string(out, "?v=")
+	strings.write_u64(out, u64(version), 16)
+	return true
 }
 
 write_text :: proc(out: ^strings.Builder, text: string) {
-	escaped, _ := entity.escape_html(text, context.temp_allocator);
-	strings.write_string(out, escaped);
+	escaped, _ := entity.escape_html(text, context.temp_allocator)
+	strings.write_string(out, escaped)
 }

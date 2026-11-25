@@ -1,27 +1,27 @@
 <form class="float" method="post" action="/login" novalidate aria-labelledby="login-title">
-    <h1 class="float-title" id="login-title">login</h1>
-    <p class="form-message" id="form-message" data-tone="{{status}}" role="alert">{{form.message}}</p>
-    <input type="hidden" name="csrf" value="{{csrf}}">
-    <div class="field">
-        <label for="email">email</label>
-        <input id="email" name="email" type="email" required
-               autocomplete="email" autocapitalize="none" spellcheck="false"
-               value="{{value email}}" aria-invalid="{{invalid email}}" aria-describedby="email-error"
-               data-value-missing="enter your email" data-type-mismatch="not a valid email address">
-        <p class="field-error" id="email-error">{{error email}}</p>
-    </div>
-    <div class="field">
-        <label for="password">password</label>
-        <input id="password" name="password" type="password" required
-               autocomplete="current-password"
-               aria-invalid="{{invalid password}}" aria-describedby="password-error"
-               data-value-missing="enter your password">
-        <p class="field-error" id="password-error">{{error password}}</p>
-    </div>
-    <div class="actions">
-        <button class="button primary" type="submit">login</button>
-        <a class="button" href="/register">register</a>
-    </div>
+  <h1 class="float-title" id="login-title">login</h1>
+  <p class="form-message" id="form-message" data-tone="{{status}}" role="alert">{{form.message}}</p>
+  <input type="hidden" name="csrf" value="{{csrf}}">
+  <div class="field">
+    <label for="email">email</label>
+    <input id="email" name="email" type="email" required
+           autocomplete="email" autocapitalize="none" spellcheck="false"
+           value="{{value email}}" aria-invalid="{{invalid email}}" aria-describedby="email-error"
+           data-value-missing="enter your email" data-type-mismatch="not a valid email address">
+    <p class="field-error" id="email-error">{{error email}}</p>
+  </div>
+  <div class="field">
+    <label for="password">password</label>
+    <input id="password" name="password" type="password" required
+           autocomplete="current-password"
+           aria-invalid="{{invalid password}}" aria-describedby="password-error"
+           data-value-missing="enter your password">
+    <p class="field-error" id="password-error">{{error password}}</p>
+  </div>
+  <div class="actions">
+    <button class="button primary" type="submit">login</button>
+    <a class="button" href="/register">register</a>
+  </div>
 </form>
 <script defer src="{{/static/js/forms.js}}"></script>
 <script defer src="{{/static/js/login.js}}"></script>

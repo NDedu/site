@@ -16,6 +16,8 @@ endif
 FLAGS_release := -o:speed
 FLAGS_debug   := -debug
 
+VET := -vet-semicolon -vet-tabs
+
 .PHONY: build run test clean live logs release debug
 
 # The single quotes keep GIT_SHA a string: Odin reads an all-digit -define value as a number
@@ -28,9 +30,9 @@ run: build
 
 test:
 	@mkdir -p build
-	$(ODIN) test cmd/web -out:build/test-web -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true
-	$(ODIN) test internal/dotenv -out:build/test-dotenv -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true
-	$(ODIN) test internal/accesslog -out:build/test-accesslog -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true
+	$(ODIN) test cmd/web -out:build/test-web -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true $(VET)
+	$(ODIN) test internal/dotenv -out:build/test-dotenv -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true $(VET)
+	$(ODIN) test internal/accesslog -out:build/test-accesslog -define:ODIN_TEST_FAIL_ON_BAD_MEMORY=true $(VET)
 
 release debug:
 	@$(if $(filter build run,$(MAKECMDGOALS)),:,echo "use it with build or run, e.g. make build $@")

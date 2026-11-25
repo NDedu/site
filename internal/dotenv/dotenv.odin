@@ -5,7 +5,7 @@ import "core:os"
 import "core:strings"
 
 Error :: enum {
-    None,
+	None,
 	Not_Found,
 	Unreadable,
 	Syntax,
@@ -13,108 +13,108 @@ Error :: enum {
 }
 
 load :: proc(path: string, scratch: runtime.Allocator) -> (line_number: int, err: Error) {
-	data, read_err := os.read_entire_file(path, scratch);
+	data, read_err := os.read_entire_file(path, scratch)
 	if read_err == .Not_Exist {
-		return 0, .Not_Found;
+		return 0, .Not_Found
 	}
 	if read_err != nil {
-		return 0, .Unreadable;
+		return 0, .Unreadable
 	}
 
-	content := string(data);
+	content := string(data)
 	for line in strings.split_lines_iterator(&content) {
-		line_number += 1;
-		key, value, line_ok, is_empty := parse_line(transmute([]u8)line);
+		line_number += 1
+		key, value, line_ok, is_empty := parse_line(transmute([]u8)line)
 		if is_empty {
-			continue;
+			continue
 		}
 		if !line_ok {
-			return line_number, .Syntax;
+			return line_number, .Syntax
 		}
 		// Variables already in the environment win over .env
 		if _, exists := os.lookup_env(key, scratch); exists {
-			continue;
+			continue
 		}
 		if os.set_env(key, value) != nil {
-			return line_number, .Environment;
+			return line_number, .Environment
 		}
 	}
-	return 0, .None;
+	return 0, .None
 }
 
 @(private)
 parse_line :: proc(raw: []u8) -> (key, value: string, ok, is_empty: bool) {
-	line := strings.trim_space(string(raw));
+	line := strings.trim_space(string(raw))
 	if line == "" || line[0] == '#' {
-		return "", "", true, true;
+		return "", "", true, true
 	}
-	line = strings.trim_prefix(line, "export ");
+	line = strings.trim_prefix(line, "export ")
 
-	eq_idx := strings.index_byte(line, '=');
+	eq_idx := strings.index_byte(line, '=')
 	if eq_idx <= 0 {
-		return;
+		return
 	}
-	key = strings.trim_space(line[:eq_idx]);
+	key = strings.trim_space(line[:eq_idx])
 	if key == "" {
-		return;
+		return
 	}
 	for char in transmute([]u8)key {
 		if !(char == '_' || char == '.' || (char >= '0' && char <= '9') || (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z')) {
-			return;
+			return
 		}
 	}
 
-	after_eq := line[eq_idx + 1:]; // untrimmed, so "KEY= # note" still has the space before #
-	rest := strings.trim_space(after_eq);
+	after_eq := line[eq_idx + 1:] // untrimmed, so "KEY= # note" still has the space before #
+	rest := strings.trim_space(after_eq)
 	switch {
 	case rest == "":
-		return key, "", true, false;
+		return key, "", true, false
 
 	case rest[0] == '\'':
-		end_idx := strings.index_byte(rest[1:], '\'');
+		end_idx := strings.index_byte(rest[1:], '\'')
 		if end_idx < 0 || !is_blank_or_comment(rest[end_idx + 2:]) {
-			return;
+			return
 		}
-		return key, rest[1:end_idx + 1], true, false;
+		return key, rest[1:end_idx + 1], true, false
 
 	case rest[0] == '"':
-		buffer := transmute([]u8)rest;
-		write_idx := 1;
+		buffer := transmute([]u8)rest
+		write_idx := 1
 		for read_idx := 1; read_idx < len(buffer); read_idx += 1 {
-			char := buffer[read_idx];
+			char := buffer[read_idx]
 			switch char {
 			case '"':
 				if !is_blank_or_comment(rest[read_idx + 1:]) {
-					return;
+					return
 				}
-				return key, rest[1:write_idx], true, false;
+				return key, rest[1:write_idx], true, false
 			case '\\':
-				read_idx += 1;
+				read_idx += 1
 				if read_idx >= len(buffer) {
-					return;
+					return
 				}
 				switch buffer[read_idx] {
-				case 'n': char = '\n';
-				case 't': char = '\t';
-				case 'r': char = '\r';
-				case:     char = buffer[read_idx]; // \" \\ and unknown escapes: the char itself
+				case 'n': char = '\n'
+				case 't': char = '\t'
+				case 'r': char = '\r'
+				case:     char = buffer[read_idx] // \" \\ and unknown escapes: the char itself
 				}
 			}
-			buffer[write_idx] = char;
-			write_idx += 1;
+			buffer[write_idx] = char
+			write_idx += 1
 		}
-		return; // no closing quote
+		return // no closing quote
 
 	case:
 		if comment_idx := strings.index(after_eq, " #"); comment_idx >= 0 {
-			after_eq = after_eq[:comment_idx];
+			after_eq = after_eq[:comment_idx]
 		}
-		return key, strings.trim_space(after_eq), true, false;
+		return key, strings.trim_space(after_eq), true, false
 	}
 }
 
 @(private)
 is_blank_or_comment :: proc(tail: string) -> bool {
-	trimmed := strings.trim_space(tail);
-	return trimmed == "" || trimmed[0] == '#';
+	trimmed := strings.trim_space(tail)
+	return trimmed == "" || trimmed[0] == '#'
 }
